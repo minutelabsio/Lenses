@@ -12,3 +12,31 @@ html, body, #wrap-outer {
   bottom: 0;
   overflow: hidden;
 }
+
+/* line 18, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#controls {
+  position: relative;
+  max-width: 600px;
+  width: 100%;
+  padding: 2em;
+  margin: auto;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+/* line 26, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#controls .btn-group {
+  width: 14em;
+}
+/* line 30, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#controls #screen {
+  position: absolute;
+  top: 0;
+  right: 30px;
+  border: 2px solid #c8c8c8;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  -ms-border-radius: 3px;
+  -o-border-radius: 3px;
+  border-radius: 3px;
+}

@@ -1,5 +1,5 @@
 // site styles
-// @import 'compass/css3';
+@import 'compass/css3';
 @import '_vars';
 
 html, body, #wrap-outer {
@@ -13,4 +13,25 @@ html, body, #wrap-outer {
     right: 0;
     bottom: 0;
     overflow: hidden;
+}
+
+#controls {
+    position: relative;
+    max-width: 600px;
+    width: 100%;
+    padding: 2em;
+    margin: auto;
+    @include box-sizing( border-box );
+
+    .btn-group {
+        width: 14em;
+    }
+
+    #screen {
+        position: absolute;
+        top: 0;
+        right: 30px;
+        border: 2px solid $grey-dark;
+        @include border-radius( 3px );
+    }
 }

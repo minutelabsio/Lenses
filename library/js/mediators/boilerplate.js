@@ -4,17 +4,21 @@ define(
         'jquery',
         'moddef',
         'modules/canvas-drawer',
-        'vendor/raf'
+        'vendor/raf',
+        'vendor/blur-filter'
     ],
     function(
         require,
         $,
         M,
         Draw,
-        _raf
+        _raf,
+        Blur
     ) {
 
         'use strict';
+
+        var blur = new Blur();
 
         var colors = {
             'grey': 'rgb(220, 220, 220)'
@@ -207,7 +211,7 @@ define(
 
             var rays = {
                 top: true
-                ,bottom: true
+                ,bottom: false
                 ,draw: function( ctx ){
 
                     Draw( ctx );
@@ -243,22 +247,62 @@ define(
             // Initialize events
             ,initEvents : function(){
 
-                var self = this;
+                var self = this
+                    ,clickEvent = window.Modernizr.touch ? 'touchstart' : 'click'
+                    ;
 
-                $(document).on({
-                    'mousedown': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                    ,'mousemove': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                    ,'mouseup': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('release', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                }, '#canvas');
+                if ( window.Modernizr.touch ){
+                    $(document).on({
+                        'touchstart': function( e ){
+                            var offset = $(this).offset();
+                            e = e.originalEvent.targetTouches[0];
+                            self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'touchmove': function( e ){
+                            var offset = $(this).offset();
+                            e = e.originalEvent.targetTouches[0];
+                            self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'touchend': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('release');
+                        }
+                    }, '#canvas');
+                } else {
+
+                    $(document).on({
+                        'mousedown': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'mousemove': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'mouseup': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('release');
+                        }
+                    }, '#canvas');
+                }
+
+                $(document).on( clickEvent, '#ctrl-top-rays', function(){
+                    var $this = $(this)
+                        ,active = !$this.is('.on')
+                        ;
+
+                    $this.toggleClass( 'on', active );
+                    self.emit('settings:top-rays', active);
+                });
+
+                $(document).on( clickEvent, '#ctrl-bottom-rays', function(){
+                    var $this = $(this)
+                        ,active = !$this.is('.on')
+                        ;
+
+                    $this.toggleClass( 'on', active );
+                    self.emit('settings:bottom-rays', active);
+                });
 
                 $(window).on('resize', function(){
                     self.emit('resize', { width: window.innerWidth, height: window.innerHeight });
@@ -299,7 +343,9 @@ define(
                     ,src: require.toUrl('../../images/Gangnam-style-2.png')
                     ,radius: 80
                     ,draw: function( ctx ){
+
                         Draw( ctx )
+                            .styles()
                             .image( this.src, this.pos.x, this.pos.y, this.radius*2.2, this.radius*2.2 )
                             ;
                     }
@@ -364,7 +410,45 @@ define(
                 this.rays = makeRays( this.lens, this.origin, this.screen );
                 this.draw( this.rays );
 
+                self.on('settings:top-rays', function( e, on ){
+                    self.rays.top = on;
+                    self.draw();
+                }).on('settings:bottom-rays', function( e, on ){
+                    self.rays.bottom = on;
+                    self.draw();
+                });
+
                 this.draw( this.screen );
+
+                // viewscreen
+                this.viewscreen = {
+                    ctx: $('#screen')[0].getContext('2d')
+                    ,draw: function(){
+
+                        // lens equation
+                        var f = self.lens.focalDistance
+                            ,ox = self.lens.pos.x - self.origin.pos.x
+                            ,ix = (ox * f)/(ox - f) + self.lens.pos.x
+                            ,blurAmt = Math.abs(ix - self.screen.pos.x)/10
+                            ,data
+                            ,canvas = this.ctx.canvas
+                            ;
+
+                        Draw( this.ctx )
+                            .clear()
+                            .offset(0, 0)
+                            .styles('fillStyle', '#fff')
+                            .rect( 0, 0, canvas.width, canvas.height )
+                            .image( self.origin.src, 100, 100, 200, 200 )
+                            ;
+
+                        data = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        blur.filter( data, { amount: blurAmt } );
+                        this.ctx.putImageData(data, 0, 0);
+                    }
+                };
+
+                self.draw( this.viewscreen );
 
                 Draw.preload( this.origin.src, function(){
                     self.draw();
