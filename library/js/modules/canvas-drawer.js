@@ -159,6 +159,13 @@ define(function(){
 
     Draw.circle = function( x, y, r, ctx ){
 
+        Draw.arc( x, y, r, Pi2, ctx );
+
+        return Draw;
+    };
+
+    Draw.arc = function( x, y, r, ang, ctx ){
+
         var ox = Draw.offset.x
             ,oy = Draw.offset.y
             ;
@@ -169,7 +176,7 @@ define(function(){
         y += oy;
 
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Pi2, false);
+        ctx.arc(x, y, r, 0, ang, false);
         ctx.closePath();
         ctx.stroke();
 
@@ -204,10 +211,8 @@ define(function(){
         x2 += ox;
         y2 += oy;
 
-        ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(cx, cy, x2, y2);
-        ctx.closePath();
         ctx.stroke();
 
         return Draw;
@@ -215,15 +220,36 @@ define(function(){
 
     Draw.arrowHead = function( dir, x, y, size, ctx ){
 
-        var flip = dir === 'left' ? -1 : 1;
+        var flip = dir === 'left' || dir === 'up' ? -1 : 1;
 
         size = size || 5;
 
-        Draw.lines([
-            [ x + flip * size, y ]
-            ,[ x - flip * size / sqrt2, y - size / sqrt2 ]
-            ,[ x - flip * size / sqrt2, y + size / sqrt2 ]
-        ], ctx);
+        if ( dir === 'up' || dir === 'down' ){
+            Draw.lines([
+                [ x, y + flip * size ]
+                ,[ x + size / sqrt2, y - flip * size / sqrt2 ]
+                ,[ x - size / sqrt2, y - flip * size / sqrt2 ]
+            ], ctx);
+        } else {
+            Draw.lines([
+                [ x + flip * size, y ]
+                ,[ x - flip * size / sqrt2, y - size / sqrt2 ]
+                ,[ x - flip * size / sqrt2, y + size / sqrt2 ]
+            ], ctx);
+        }
+
+        return Draw;
+    };
+
+    Draw.text = function( text, x, y, ctx ){
+
+        var ox = Draw.offset.x
+            ,oy = Draw.offset.y
+            ;
+
+        ctx = ctx || Draw.ctx;
+
+        ctx.fillText( text, x + ox, y + oy );
 
         return Draw;
     };

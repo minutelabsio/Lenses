@@ -26,6 +26,7 @@ define(
             ,'greyDark': 'rgb(200, 200, 200)'
 
             ,'deepGrey': 'rgb(67, 67, 67)'
+            ,'deepGreyLight': 'rgb(98, 98, 98)'
 
             ,'blue': 'rgb(40, 136, 228)'
             ,'blueLight': 'rgb(91, 191, 243)'
@@ -104,6 +105,12 @@ define(
                 lineWidth: 2
                 ,strokeStyle: colors.greenDark
                 ,fillStyle: colors.green
+            }
+            ,psyArrowStyles = {
+                lineWidth: 2
+                ,strokeStyle: colors.deepGreyLight
+                ,fillStyle: colors.deepGreyLight
+                ,font: '20px "latin-modern-mono-light", Courier, monospace'
             }
             ;
 
@@ -382,10 +389,20 @@ define(
                     ,radius: 80
                     ,draw: function( ctx ){
 
+                        var x = this.pos.x - 30
+                            ,y = this.pos.y - this.radius - 70
+                            ;
+
                         Draw( ctx )
                             .styles()
                             .image( this.src, this.pos.x, this.pos.y, this.radius*2.2, this.radius*2.2 )
+                            .styles( psyArrowStyles )
+                            .quadratic( x, y, x + 30, y + 30, x + 26, y + 2 )
+                            .arrowHead( 'down', x + 29, y + 30, 5 )
+                                .fill()
+                            .text( 'Psy', x - 40, y + 2 )
                             ;
+
                     }
                 };
 
@@ -499,7 +516,7 @@ define(
                         if ( c >= 200 ){
                             return;
                         }
-                        
+
                         this.ctx.save();
                         this.ctx.scale(-1, -1);
 
