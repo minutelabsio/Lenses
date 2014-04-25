@@ -1,26 +1,39 @@
 define(
     [
+        'require',
         'jquery',
         'moddef',
         'modules/canvas-drawer',
-        'vendor/raf'
+        'vendor/raf',
+        'vendor/blur-filter'
     ],
     function(
+        require,
         $,
         M,
-        Drawer,
-        _raf
+        Draw,
+        _raf,
+        Blur
     ) {
 
         'use strict';
+
+        var blur = new Blur();
 
         var colors = {
             'grey': 'rgb(220, 220, 220)'
             ,'greyDark': 'rgb(200, 200, 200)'
             ,'deepGrey': 'rgb(67, 67, 67)'
             ,'blue': 'rgb(40, 136, 228)'
+            ,'blueLight': 'rgb(91, 191, 243)'
+            ,'blueDark': 'rgb(18, 84, 151)'
+            ,'blueGlass': 'rgb(221, 249, 255)'
             ,'green': 'rgb(121, 229, 0)'
+            ,'greenLight': 'rgb(125, 242, 129)'
+            ,'greenDark': 'rgb(64, 128, 0)'
             ,'red': 'rgb(233, 63, 51)'
+            ,'redLight': 'rgb(244, 183, 168)'
+            ,'redDark': 'rgb(167, 42, 34)'
         };
 
         function throttle( fn, delay, scope ){
@@ -56,9 +69,10 @@ define(
 
         var lensStyles = {
                 lineWidth: 2
-                ,strokeStyle: colors.deepGrey
+                ,strokeStyle: colors.blueLight
+                ,fillStyle: colors.blueGlass
                 ,shadowBlur: 1
-                ,shadowColor: colors.deepGrey
+                ,shadowColor: colors.blueLight
                 ,lineCap: 'round'
             }
             ,pointStyles = {
@@ -103,19 +117,21 @@ define(
                         ,f = this.focalDistance
                         ;
 
-                    Drawer( ctx )
+                    Draw( ctx )
                         .styles( lensStyles )
                         // left side
                         .quadratic( x, y - h2, x, y + h2, x - f * 0.4, y )
+                            .fill()
                         // right side
-                        .quadratic( x, y - h2, x, y + h2, x + f * 0.4, y )
+                        .quadratic( x+2, y - h2, x+2, y + h2, x + f * 0.4, y )
+                            .fill()
                         .styles( pointStyles )
                         // left focal pt
                         .circle( x - f, y, 3 )
-                          .fill()
+                            .fill()
                         // right focal pt
                         .circle( x + f, y, 3 )
-                          .fill()
+                            .fill()
                         ;
                 }
             };
@@ -125,44 +141,87 @@ define(
 
         function makeRays( lens, origin, screen ){
 
+            var styles = {
+                shadowBlur: 1
+                ,lineCap: 'round'
+            };
+
+            function rayFrom( ox, oy, color ){
+
+                var d
+                    ,l
+                    ,x
+                    ,y
+                    ;
+
+                // center
+                x = ox;
+                y = oy;
+                d = dist( x, y, lens.pos.x, lens.pos.y );
+                l = (screen.pos.x - x) * d / (lens.pos.x - x);
+                y += ( screen.pos.y - y ) * l / d;
+
+                if ( y > (screen.pos.y + screen.height / 2) || y < (screen.pos.y - screen.height / 2) ){
+                    // elongate the ray if it won't hit the screen
+                    l += 500;
+                }
+
+                styles.strokeStyle = styles.shadowColor = colors[color];
+
+                Draw.styles( styles )
+                    .line( ox, oy, lens.pos.x, lens.pos.y, l )
+                    ;
+
+                // Farside focal
+                x = lens.pos.x;
+                y = lens.pos.y - oy;
+                d = dist( x, y, lens.pos.x + lens.focalDistance, lens.pos.y );
+                l = (screen.pos.x - x) * d / (lens.pos.x + lens.focalDistance - x);
+                y += ( screen.pos.y - y ) * l / d;
+
+                if ( y > (screen.pos.y + screen.height / 2) || y < (screen.pos.y - screen.height / 2) ){
+                    // elongate the ray if it won't hit the screen
+                    l += 500;
+                }
+
+                styles.strokeStyle = styles.shadowColor = colors[color+'Light'];
+
+                Draw.styles( styles )
+                    .line( ox, oy, lens.pos.x, oy )
+                    .line( lens.pos.x, oy, lens.pos.x + lens.focalDistance, lens.pos.y, l )
+                    ;
+
+                // Nearside focal
+                x = ox;
+                y = oy;
+                d = dist( x, y, lens.pos.x - lens.focalDistance, lens.pos.y );
+                l = (lens.pos.x - x) * d / (lens.pos.x - lens.focalDistance - x);
+                y += ( lens.pos.y - y ) * l / d;
+
+                if ( y < (lens.pos.y + lens.height / 2) && y > (lens.pos.y - lens.height / 2) ){
+
+                    styles.strokeStyle = styles.shadowColor = colors[color+'Dark'];
+
+                    Draw.styles( styles )
+                        .line( ox, oy, lens.pos.x - lens.focalDistance, lens.pos.y, l )
+                        .line( lens.pos.x, y, lens.pos.x + 1000, y )
+                        ;
+                }
+            }
+
             var rays = {
-                draw: function( ctx ){
+                top: true
+                ,bottom: false
+                ,draw: function( ctx ){
 
-                    var d
-                        ,l
-                        ,x
-                        ,y
-                        ;
+                    Draw( ctx );
 
-                    x = origin.pos.x;
-                    y = origin.pos.y - origin.radius;
-                    d = dist( x, y, lens.pos.x, lens.pos.y );
-                    l = (screen.pos.x - x) * d / (lens.pos.x - x);
+                    if ( rays.top ){
+                        rayFrom( origin.pos.x, origin.pos.y - origin.radius, 'red' );
+                    }
 
-                    // center
-                    Drawer( ctx )
-                        .styles( 'strokeStyle', colors.red )
-                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, lens.pos.y, l )
-                        ;
-
-                    // Farside focal
-                    Drawer
-                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, origin.pos.y - origin.radius )
-                        .line( lens.pos.x, origin.pos.y - origin.radius, lens.pos.x + lens.focalDistance, lens.pos.y, 250 )
-                        ;
-
-                    x = origin.pos.x;
-                    y = origin.pos.y - origin.radius;
-                    d = dist( x, y, lens.pos.x - lens.focalDistance, lens.pos.y );
-                    l = (lens.pos.x - x) * d / (lens.pos.x - lens.focalDistance - x);
-                    y += ( lens.pos.y - y ) * l / d;
-
-                    if ( y < (lens.pos.y + lens.height / 2) && y > lens.pos.y ){
-                        // Nearside focal
-                        Drawer
-                            .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x - lens.focalDistance, origin.pos.y, l )
-                            .line( lens.pos.x, y, lens.pos.x + 1000, y )
-                            ;
+                    if ( rays.bottom ){
+                        rayFrom( origin.pos.x, origin.pos.y + origin.radius, 'green' );
                     }
                 }
             };
@@ -180,7 +239,7 @@ define(
                 this.canvasElements = [];
 
                 self.initEvents();
-                this._trueDraw = Drawer.animThrottle( this._trueDraw, this );
+                this._trueDraw = Draw.animThrottle( this._trueDraw, this );
 
                 $(self.onDomReady.bind(this));
             }
@@ -188,22 +247,66 @@ define(
             // Initialize events
             ,initEvents : function(){
 
-                var self = this;
+                var self = this
+                    ,clickEvent = window.Modernizr.touch ? 'touchstart' : 'click'
+                    ;
 
-                $(document).on({
-                    'mousedown': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                    ,'mousemove': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                    ,'mouseup': function( e ){
-                        var offset = $(this).offset();
-                        self.emit('release', { x: e.pageX - offset.left, y: e.pageY - offset.top });
-                    }
-                }, '#canvas');
+                if ( window.Modernizr.touch ){
+                    $(document).on({
+                        'touchstart': function( e ){
+                            var offset = $(this).offset();
+                            e = e.originalEvent.targetTouches[0];
+                            self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'touchmove': function( e ){
+                            var offset = $(this).offset();
+                            e = e.originalEvent.targetTouches[0];
+                            self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'touchend': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('release');
+                        }
+                    }, '#canvas');
+                } else {
+
+                    $(document).on({
+                        'mousedown': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'mousemove': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
+                        }
+                        ,'mouseup': function( e ){
+                            var offset = $(this).offset();
+                            self.emit('release');
+                        }
+                    }, '#canvas');
+                }
+
+                $(document).on( clickEvent, '#ctrl-top-rays', function(){
+                    var $this = $(this)
+                        ,active = !$this.is('.on')
+                        ;
+
+                    $this.toggleClass( 'on', active );
+                    self.emit('settings:top-rays', active);
+                });
+
+                $(document).on( clickEvent, '#ctrl-bottom-rays', function(){
+                    var $this = $(this)
+                        ,active = !$this.is('.on')
+                        ;
+
+                    $this.toggleClass( 'on', active );
+                    self.emit('settings:bottom-rays', active);
+                });
+
+                $(window).on('resize', function(){
+                    self.emit('resize', { width: window.innerWidth, height: window.innerHeight });
+                });
             }
 
             // DomReady Callback
@@ -211,7 +314,7 @@ define(
 
                 var self = this
                     ,width = window.innerWidth
-                    ,height = window.innerHeight
+                    ,height = 500
                     ,canvas = $('#canvas')[0]
                     ,ctx = canvas.getContext('2d')
                     ;
@@ -219,49 +322,39 @@ define(
                 canvas.width = width;
                 canvas.height = height;
 
+                self.on('resize', function( e, dim ){
+                    width = canvas.width = dim.width;
+                    // height = canvas.height = 300;
+                    self.draw();
+                });
+
                 this.ctx = ctx;
 
                 // lens
-                this.lens = makeLens( (width/2)|0, (height/2)|0, 200, 100 );
+                this.lens = makeLens( 0, 0, 300, 100 );
                 this.draw( this.lens );
 
                 // objective
                 this.origin = {
                     pos: {
-                        x: width / 2 - 200
-                        ,y: height / 2
+                        x: -200
+                        ,y: 0
                     }
-                    ,radius: 50
+                    ,src: require.toUrl('../../images/Gangnam-style-2.png')
+                    ,radius: 80
                     ,draw: function( ctx ){
-                        Drawer( ctx )
-                            .styles( lensStyles )
-                            .circle( this.pos.x, this.pos.y, this.radius )
-                              .fill()
+
+                        Draw( ctx )
+                            .styles()
+                            .image( this.src, this.pos.x, this.pos.y, this.radius*2.2, this.radius*2.2 )
                             ;
-                    }
-                    ,isInside: function( x, y ){
-                        x -= this.pos.x;
-                        y -= this.pos.y;
-                        return Math.sqrt( x*x + y*y ) <= this.radius;
                     }
                 };
 
-                self.on('grab', function( e, pos ){
-
-                    if ( !self.origin.isInside( pos.x, pos.y ) ){
-                        return;
-                    }
-
-                    var move = function( e, pos ){
-                        self.origin.pos.x = pos.x;
-                        self.draw();
-                    };
-
-                    self.on('move', move);
-                    self.on('release', function( e ){
-                        self.off('move', move);
-                        self.off(e.topic, e.handler);
-                    });
+                this.makeMovable( this.origin, function( x, y, item ){
+                    x -= item.pos.x;
+                    y -= item.pos.y;
+                    return Math.sqrt( x*x + y*y ) <= item.radius;
                 });
 
                 this.draw( this.origin );
@@ -269,31 +362,28 @@ define(
                 // screen
                 this.screen = {
                     pos: {
-                        x: width / 2 + 200
-                        ,y: height / 2
+                        x: 200
+                        ,y: 0
                     }
-                    ,height: 200
+                    ,height: 300
                     ,draw: function( ctx ){
 
                         var h2 = this.height / 2
                             ,x = this.pos.x
                             ,y = this.pos.y
                             ,s = 10
-                            ,lines = this.lines
+                            ,lines = []
                             ;
 
-                        if ( !lines ){
-                            lines = this.lines = [];
-                            y -= h2;
-                            for ( var i = 0; i * s < this.height; i++ ){
-                                y += s;
-                                lines.push([ x, y, x + 10, y - 10 ]);
-                            }
+                        y -= h2;
+                        for ( var i = 0; i * s < this.height; i++ ){
+                            y += s;
+                            lines.push([ x, y, x + 10, y - 10 ]);
                         }
 
                         y = this.pos.y;
 
-                        Drawer( ctx )
+                        Draw( ctx )
                             .styles( 'fillStyle', 'white' )
                             .rect( x, y - h2, x + width, y + h2 )
                             .fill()
@@ -305,13 +395,109 @@ define(
                     }
                 };
 
+                this.makeMovable( this.screen, function( x, y, item ){
+
+                    var h2 = item.height/2;
+                    x -= item.pos.x;
+                    y -= item.pos.y;
+                    return x < 15 &&
+                        x > -15 &&
+                        y < h2 &&
+                        y > (-h2);
+                });
+
                 // rays
                 this.rays = makeRays( this.lens, this.origin, this.screen );
                 this.draw( this.rays );
 
+                self.on('settings:top-rays', function( e, on ){
+                    self.rays.top = on;
+                    self.draw();
+                }).on('settings:bottom-rays', function( e, on ){
+                    self.rays.bottom = on;
+                    self.draw();
+                });
+
                 this.draw( this.screen );
 
-                this.draw();
+                // viewscreen
+                this.viewscreen = {
+                    ctx: $('#screen')[0].getContext('2d')
+                    ,draw: function(){
+
+                        // lens equation
+                        var f = self.lens.focalDistance
+                            ,ox = self.lens.pos.x - self.origin.pos.x
+                            ,ix = (ox * f)/(ox - f) + self.lens.pos.x
+                            ,blurAmt = Math.abs(ix - self.screen.pos.x)/10
+                            ,data
+                            ,canvas = this.ctx.canvas
+                            ;
+
+                        Draw( this.ctx )
+                            .clear()
+                            .offset(0, 0)
+                            .styles('fillStyle', '#fff')
+                            .rect( 0, 0, canvas.width, canvas.height )
+                            .image( self.origin.src, 100, 100, 200, 200 )
+                            ;
+
+                        data = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        blur.filter( data, { amount: blurAmt } );
+                        this.ctx.putImageData(data, 0, 0);
+                    }
+                };
+
+                self.draw( this.viewscreen );
+
+                Draw.preload( this.origin.src, function(){
+                    self.draw();
+                });
+            }
+
+            ,makeMovable: function( item, isInside ){
+
+                var self = this;
+                var canvas = self.ctx.canvas;
+
+                self.on('move', function( e, pos ){
+                    var width = self.ctx.canvas.width
+                        ,height = self.ctx.canvas.height
+                        ;
+
+                    if ( e.stop ){
+                        return;
+                    }
+
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ){
+                        e.stop = true;
+                        canvas.style.cursor = 'move';
+                    } else {
+                        canvas.style.cursor = '';
+                    }
+                });
+
+                self.on('grab', function( e, pos ){
+
+                    var width = self.ctx.canvas.width
+                        ,height = self.ctx.canvas.height
+                        ;
+
+                    if ( !isInside( pos.x - width/2, pos.y - height/2, item ) ){
+                        return;
+                    }
+
+                    var move = function( e, pos ){
+                        item.pos.x = pos.x - width/2;
+                        self.draw();
+                    };
+
+                    self.on('move', move);
+                    self.on('release', function( e ){
+                        self.off('move', move);
+                        self.off(e.topic, e.handler);
+                    });
+                });
             }
 
             ,draw: function( thing ){
@@ -326,7 +512,10 @@ define(
 
             ,_trueDraw: function(){
 
-                Drawer( this.ctx ).clear();
+                Draw( this.ctx )
+                    .offset( this.ctx.canvas.width/2, this.ctx.canvas.height/2 )
+                    .clear()
+                    ;
 
                 for ( var i = 0, l = this.canvasElements.length; i < l; i++ ){
                     this.canvasElements[ i ].draw( this.ctx );
