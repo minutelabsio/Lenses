@@ -1,14 +1,16 @@
 define(
     [
+        'require',
         'jquery',
         'moddef',
         'modules/canvas-drawer',
         'vendor/raf'
     ],
     function(
+        require,
         $,
         M,
-        Drawer,
+        Draw,
         _raf
     ) {
 
@@ -19,8 +21,15 @@ define(
             ,'greyDark': 'rgb(200, 200, 200)'
             ,'deepGrey': 'rgb(67, 67, 67)'
             ,'blue': 'rgb(40, 136, 228)'
+            ,'blueLight': 'rgb(91, 191, 243)'
+            ,'blueDark': 'rgb(18, 84, 151)'
+            ,'blueGlass': 'rgb(221, 249, 255)'
             ,'green': 'rgb(121, 229, 0)'
+            ,'greenLight': 'rgb(125, 242, 129)'
+            ,'greenDark': 'rgb(64, 128, 0)'
             ,'red': 'rgb(233, 63, 51)'
+            ,'redLight': 'rgb(244, 183, 168)'
+            ,'redDark': 'rgb(167, 42, 34)'
         };
 
         function throttle( fn, delay, scope ){
@@ -56,9 +65,10 @@ define(
 
         var lensStyles = {
                 lineWidth: 2
-                ,strokeStyle: colors.deepGrey
+                ,strokeStyle: colors.blueLight
+                ,fillStyle: colors.blueGlass
                 ,shadowBlur: 1
-                ,shadowColor: colors.deepGrey
+                ,shadowColor: colors.blueLight
                 ,lineCap: 'round'
             }
             ,pointStyles = {
@@ -103,19 +113,21 @@ define(
                         ,f = this.focalDistance
                         ;
 
-                    Drawer( ctx )
+                    Draw( ctx )
                         .styles( lensStyles )
                         // left side
                         .quadratic( x, y - h2, x, y + h2, x - f * 0.4, y )
+                            .fill()
                         // right side
-                        .quadratic( x, y - h2, x, y + h2, x + f * 0.4, y )
+                        .quadratic( x+2, y - h2, x+2, y + h2, x + f * 0.4, y )
+                            .fill()
                         .styles( pointStyles )
                         // left focal pt
                         .circle( x - f, y, 3 )
-                          .fill()
+                            .fill()
                         // right focal pt
                         .circle( x + f, y, 3 )
-                          .fill()
+                            .fill()
                         ;
                 }
             };
@@ -125,7 +137,12 @@ define(
 
         function makeRays( lens, origin, screen ){
 
-            function rayFrom( ox, oy ){
+            var styles = {
+                shadowBlur: 1
+                ,lineCap: 'round'
+            };
+
+            function rayFrom( ox, oy, color ){
 
                 var d
                     ,l
@@ -145,7 +162,9 @@ define(
                     l += 500;
                 }
 
-                Drawer
+                styles.strokeStyle = styles.shadowColor = colors[color];
+
+                Draw.styles( styles )
                     .line( ox, oy, lens.pos.x, lens.pos.y, l )
                     ;
 
@@ -161,7 +180,9 @@ define(
                     l += 500;
                 }
 
-                Drawer
+                styles.strokeStyle = styles.shadowColor = colors[color+'Light'];
+
+                Draw.styles( styles )
                     .line( ox, oy, lens.pos.x, oy )
                     .line( lens.pos.x, oy, lens.pos.x + lens.focalDistance, lens.pos.y, l )
                     ;
@@ -174,7 +195,10 @@ define(
                 y += ( lens.pos.y - y ) * l / d;
 
                 if ( y < (lens.pos.y + lens.height / 2) && y > (lens.pos.y - lens.height / 2) ){
-                    Drawer
+
+                    styles.strokeStyle = styles.shadowColor = colors[color+'Dark'];
+
+                    Draw.styles( styles )
                         .line( ox, oy, lens.pos.x - lens.focalDistance, lens.pos.y, l )
                         .line( lens.pos.x, y, lens.pos.x + 1000, y )
                         ;
@@ -186,14 +210,14 @@ define(
                 ,bottom: true
                 ,draw: function( ctx ){
 
-                    Drawer( ctx ).styles( 'strokeStyle', colors.red );
+                    Draw( ctx );
 
                     if ( rays.top ){
-                        rayFrom( origin.pos.x, origin.pos.y - origin.radius );
+                        rayFrom( origin.pos.x, origin.pos.y - origin.radius, 'red' );
                     }
 
                     if ( rays.bottom ){
-                        rayFrom( origin.pos.x, origin.pos.y + origin.radius );
+                        rayFrom( origin.pos.x, origin.pos.y + origin.radius, 'green' );
                     }
                 }
             };
@@ -211,7 +235,7 @@ define(
                 this.canvasElements = [];
 
                 self.initEvents();
-                this._trueDraw = Drawer.animThrottle( this._trueDraw, this );
+                this._trueDraw = Draw.animThrottle( this._trueDraw, this );
 
                 $(self.onDomReady.bind(this));
             }
@@ -246,7 +270,7 @@ define(
 
                 var self = this
                     ,width = window.innerWidth
-                    ,height = window.innerHeight
+                    ,height = 500
                     ,canvas = $('#canvas')[0]
                     ,ctx = canvas.getContext('2d')
                     ;
@@ -256,14 +280,14 @@ define(
 
                 self.on('resize', function( e, dim ){
                     width = canvas.width = dim.width;
-                    height = canvas.height = dim.height;
+                    // height = canvas.height = 300;
                     self.draw();
                 });
 
                 this.ctx = ctx;
 
                 // lens
-                this.lens = makeLens( 0, 0, 200, 100 );
+                this.lens = makeLens( 0, 0, 300, 100 );
                 this.draw( this.lens );
 
                 // objective
@@ -272,12 +296,11 @@ define(
                         x: -200
                         ,y: 0
                     }
-                    ,radius: 50
+                    ,src: require.toUrl('../../images/Gangnam-style-2.png')
+                    ,radius: 80
                     ,draw: function( ctx ){
-                        Drawer( ctx )
-                            .styles( lensStyles )
-                            .circle( this.pos.x, this.pos.y, this.radius )
-                              .fill()
+                        Draw( ctx )
+                            .image( this.src, this.pos.x, this.pos.y, this.radius*2.2, this.radius*2.2 )
                             ;
                     }
                 };
@@ -296,7 +319,7 @@ define(
                         x: 200
                         ,y: 0
                     }
-                    ,height: 200
+                    ,height: 300
                     ,draw: function( ctx ){
 
                         var h2 = this.height / 2
@@ -314,7 +337,7 @@ define(
 
                         y = this.pos.y;
 
-                        Drawer( ctx )
+                        Draw( ctx )
                             .styles( 'fillStyle', 'white' )
                             .rect( x, y - h2, x + width, y + h2 )
                             .fill()
@@ -343,7 +366,9 @@ define(
 
                 this.draw( this.screen );
 
-                this.draw();
+                Draw.preload( this.origin.src, function(){
+                    self.draw();
+                });
             }
 
             ,makeMovable: function( item, isInside ){
@@ -403,7 +428,7 @@ define(
 
             ,_trueDraw: function(){
 
-                Drawer( this.ctx )
+                Draw( this.ctx )
                     .offset( this.ctx.canvas.width/2, this.ctx.canvas.height/2 )
                     .clear()
                     ;
