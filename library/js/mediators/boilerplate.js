@@ -428,7 +428,10 @@ define(
                         // lens equation
                         var f = self.lens.focalDistance
                             ,ox = self.lens.pos.x - self.origin.pos.x
-                            ,ix = (ox * f)/(ox - f) + self.lens.pos.x
+                            ,factor = (ox * f)/(ox - f)
+                            ,ix = factor + self.lens.pos.x
+                            ,oh = self.origin.radius
+                            ,h = 2 * factor * oh / ox
                             ,blurAmt = Math.abs(ix - self.screen.pos.x)/10
                             ,data
                             ,canvas = this.ctx.canvas
@@ -439,8 +442,14 @@ define(
                             .offset(0, 0)
                             .styles('fillStyle', '#fff')
                             .rect( 0, 0, canvas.width, canvas.height )
-                            .image( self.origin.src, 100, 100, 200, 200 )
                             ;
+
+                        this.ctx.save();
+                        this.ctx.scale(-1, -1);
+
+                        Draw.image( self.origin.src, -100, -100, h, h );
+
+                        this.ctx.restore();
 
                         data = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
                         blur.filter( data, { amount: blurAmt } );
