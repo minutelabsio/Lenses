@@ -119,6 +119,7 @@ define(function(){
             ctx.lineTo(x2, y2);
         }
 
+        ctx.closePath();
         ctx.stroke();
 
         return Draw;
@@ -169,6 +170,7 @@ define(function(){
 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Pi2, false);
+        ctx.closePath();
         ctx.stroke();
 
         return Draw;
@@ -205,6 +207,7 @@ define(function(){
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(cx, cy, x2, y2);
+        ctx.closePath();
         ctx.stroke();
 
         return Draw;
