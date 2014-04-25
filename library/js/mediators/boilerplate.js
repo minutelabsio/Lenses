@@ -427,12 +427,18 @@ define(
 
                         // lens equation
                         var f = self.lens.focalDistance
+                            // object dist
                             ,ox = self.lens.pos.x - self.origin.pos.x
+                            // focal origin of screen
+                            ,sx = (self.screen.pos.x * f)/(self.screen.pos.x - f)
+                            // confusion circle
+                            ,c = self.lens.height * Math.abs(sx - ox) * f / (sx * (ox - f))
+                            // image dist
                             ,factor = (ox * f)/(ox - f)
-                            ,ix = factor + self.lens.pos.x
                             ,oh = self.origin.radius
-                            ,h = 2 * factor * oh / ox
-                            ,blurAmt = Math.abs(ix - self.screen.pos.x)/10
+                            // height of the image = ratio of object/image distances plus confusion circle
+                            // multiply by two because we're using the radius (half height)
+                            ,h = 2 * (factor * oh / ox + c/2)
                             ,data
                             ,canvas = this.ctx.canvas
                             ;
@@ -452,7 +458,7 @@ define(
                         this.ctx.restore();
 
                         data = this.ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        blur.filter( data, { amount: blurAmt } );
+                        blur.filter( data, { amount: c } );
                         this.ctx.putImageData(data, 0, 0);
                     }
                 };
