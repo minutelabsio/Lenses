@@ -2,7 +2,7 @@ permalink: /:year-:month-:day/:title
 markdown: rdiscount
 exclude: ["README.md", "CNAME", "LICENSE", "build", "config.rb", "Gruntfile.js", "package.json", "jshint.json"]
 
-title : "Title of the Lab" # changeme
+title : "Lenses" # changeme
 id : "" # changeme
 description : "Short description" # changeme
 thumb: "http://minutelabs.io/assets/THUMB_IMAGE" # changem
@@ -17,4 +17,3 @@ show :
   branding: true
   details: true
   comments: true
-
