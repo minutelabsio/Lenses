@@ -28,10 +28,14 @@ html, body, #wrap-outer {
 #controls .btn-group {
   width: 14em;
 }
-/* line 30, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 29, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#controls .btn-group:first-child {
+  margin-top: 0;
+}
+/* line 34, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #controls #screen {
   position: absolute;
-  top: 0;
+  top: 2em;
   right: 30px;
   border: 2px solid #c8c8c8;
   -webkit-border-radius: 3px;

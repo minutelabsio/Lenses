@@ -2,6 +2,7 @@ define(function(){
 
     var Pi2 = 2 * Math.PI;
     var context;
+    var sqrt2 = Math.sqrt(2);
 
     var imgCache = {};
     function getImage( src, cb ){
@@ -127,7 +128,7 @@ define(function(){
         ctx = ctx || Draw.ctx;
 
         var i
-            ,p
+            ,p = points[ 0 ]
             ,l = points.length
             ,ox = Draw.offset.x
             ,oy = Draw.offset.y
@@ -135,12 +136,21 @@ define(function(){
 
         ctx.beginPath();
 
-        for ( i = 0; i < l; i++ ){
-            p = points[ i ];
+        if ( p.length <= 2 ){
             ctx.moveTo( p[0] + ox, p[1] + oy );
-            ctx.lineTo( p[2] + ox, p[3] + oy );
         }
 
+        for ( i = 1; i < l; i++ ){
+            p = points[ i ];
+            if ( p.length > 2 ){
+                ctx.moveTo( p[0] + ox, p[1] + oy );
+                ctx.lineTo( p[2] + ox, p[3] + oy );
+            } else {
+                ctx.lineTo( p[0] + ox, p[1] + oy );
+            }
+        }
+
+        ctx.closePath();
         ctx.stroke();
 
         return Draw;
@@ -196,6 +206,21 @@ define(function(){
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(cx, cy, x2, y2);
         ctx.stroke();
+
+        return Draw;
+    };
+
+    Draw.arrowHead = function( dir, x, y, size, ctx ){
+
+        var flip = dir === 'left' ? -1 : 1;
+
+        size = size || 5;
+
+        Draw.lines([
+            [ x + flip * size, y ]
+            ,[ x - flip * size / sqrt2, y - size / sqrt2 ]
+            ,[ x - flip * size / sqrt2, y + size / sqrt2 ]
+        ], ctx);
 
         return Draw;
     };

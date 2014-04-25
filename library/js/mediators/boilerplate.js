@@ -90,6 +90,11 @@ define(
                 ,strokeStyle: colors.greyDark
                 ,lineCap: 'round'
             }
+            ,arrowStyles = {
+                lineWidth: 2
+                ,strokeStyle: colors.greenDark
+                ,fillStyle: colors.green
+            }
             ;
 
         function dist( x, y, x2, y2 ){
@@ -304,6 +309,11 @@ define(
                     self.emit('settings:bottom-rays', active);
                 });
 
+                $(document).on( clickEvent, '#ctrl-reset', function(){
+
+                    self.emit('settings:reset');
+                });
+
                 $(window).on('resize', function(){
                     self.emit('resize', { width: window.innerWidth, height: window.innerHeight });
                 });
@@ -468,12 +478,43 @@ define(
                 Draw.preload( this.origin.src, function(){
                     self.draw();
                 });
+
+                self.on('settings:reset', function(){
+                    self.origin.pos.x = -200;
+                    self.screen.pos.x = 200;
+                    self.draw();
+                });
             }
 
             ,makeMovable: function( item, isInside ){
 
                 var self = this;
                 var canvas = self.ctx.canvas;
+                var handle = {
+                    radius: 20
+                    ,pos: {
+                        get x(){
+                            return item.pos.x;
+                        }
+                        ,y: 200
+                    }
+                    ,draw: function( ctx ){
+
+                        Draw( ctx )
+                            .styles( 'strokeStyle', '#444' )
+                            .line( item.pos.x, item.pos.y, item.pos.x, this.pos.y )
+                            .styles( arrowStyles )
+                            .rect( item.pos.x - 10, this.pos.y - 2, item.pos.x + 10, this.pos.y + 2 )
+                                .fill()
+                            .arrowHead( 'left', item.pos.x - 15, this.pos.y, 10 )
+                                .fill()
+                            .arrowHead( 'right', item.pos.x + 15, this.pos.y, 10 )
+                                .fill()
+                            ;
+                    }
+                };
+
+                self.draw( handle );
 
                 self.on('move', function( e, pos ){
                     var width = self.ctx.canvas.width
@@ -484,7 +525,9 @@ define(
                         return;
                     }
 
-                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ){
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ||
+                        dist( pos.x - width/2, pos.y - height/2, handle.pos.x, handle.pos.y ) <= handle.radius
+                    ){
                         e.stop = true;
                         canvas.style.cursor = 'move';
                     } else {
@@ -498,20 +541,20 @@ define(
                         ,height = self.ctx.canvas.height
                         ;
 
-                    if ( !isInside( pos.x - width/2, pos.y - height/2, item ) ){
-                        return;
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ||
+                        dist( pos.x - width/2, pos.y - height/2, handle.pos.x, handle.pos.y ) <= handle.radius
+                    ){
+                        var move = function( e, pos ){
+                            item.pos.x = pos.x - width/2;
+                            self.draw();
+                        };
+
+                        self.on('move', move);
+                        self.on('release', function( e ){
+                            self.off('move', move);
+                            self.off(e.topic, e.handler);
+                        });
                     }
-
-                    var move = function( e, pos ){
-                        item.pos.x = pos.x - width/2;
-                        self.draw();
-                    };
-
-                    self.on('move', move);
-                    self.on('release', function( e ){
-                        self.off('move', move);
-                        self.off(e.topic, e.handler);
-                    });
                 });
             }
 
