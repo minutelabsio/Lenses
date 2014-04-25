@@ -125,62 +125,75 @@ define(
 
         function makeRays( lens, origin, screen ){
 
-            var rays = {
-                draw: function( ctx ){
+            function rayFrom( ox, oy ){
 
-                    var d
-                        ,l
-                        ,x
-                        ,y
+                var d
+                    ,l
+                    ,x
+                    ,y
+                    ;
+
+                // center
+                x = ox;
+                y = oy;
+                d = dist( x, y, lens.pos.x, lens.pos.y );
+                l = (screen.pos.x - x) * d / (lens.pos.x - x);
+                y += ( screen.pos.y - y ) * l / d;
+
+                if ( y > (screen.pos.y + screen.height / 2) || y < (screen.pos.y - screen.height / 2) ){
+                    // elongate the ray if it won't hit the screen
+                    l += 500;
+                }
+
+                Drawer
+                    .line( ox, oy, lens.pos.x, lens.pos.y, l )
+                    ;
+
+                // Farside focal
+                x = lens.pos.x;
+                y = lens.pos.y - oy;
+                d = dist( x, y, lens.pos.x + lens.focalDistance, lens.pos.y );
+                l = (screen.pos.x - x) * d / (lens.pos.x + lens.focalDistance - x);
+                y += ( screen.pos.y - y ) * l / d;
+
+                if ( y > (screen.pos.y + screen.height / 2) || y < (screen.pos.y - screen.height / 2) ){
+                    // elongate the ray if it won't hit the screen
+                    l += 500;
+                }
+
+                Drawer
+                    .line( ox, oy, lens.pos.x, oy )
+                    .line( lens.pos.x, oy, lens.pos.x + lens.focalDistance, lens.pos.y, l )
+                    ;
+
+                // Nearside focal
+                x = ox;
+                y = oy;
+                d = dist( x, y, lens.pos.x - lens.focalDistance, lens.pos.y );
+                l = (lens.pos.x - x) * d / (lens.pos.x - lens.focalDistance - x);
+                y += ( lens.pos.y - y ) * l / d;
+
+                if ( y < (lens.pos.y + lens.height / 2) && y > (lens.pos.y - lens.height / 2) ){
+                    Drawer
+                        .line( ox, oy, lens.pos.x - lens.focalDistance, lens.pos.y, l )
+                        .line( lens.pos.x, y, lens.pos.x + 1000, y )
                         ;
+                }
+            }
+
+            var rays = {
+                top: true
+                ,bottom: true
+                ,draw: function( ctx ){
 
                     Drawer( ctx ).styles( 'strokeStyle', colors.red );
 
-                    x = origin.pos.x;
-                    y = origin.pos.y - origin.radius;
-                    d = dist( x, y, lens.pos.x, lens.pos.y );
-                    l = (screen.pos.x - x) * d / (lens.pos.x - x);
-                    y += ( screen.pos.y - y ) * l / d;
-
-                    if ( y > (screen.pos.y + screen.height / 2) ){
-                        // elongate the ray if it won't hit the screen
-                        l += 500;
+                    if ( rays.top ){
+                        rayFrom( origin.pos.x, origin.pos.y - origin.radius );
                     }
 
-                    // center
-                    Drawer
-                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, lens.pos.y, l )
-                        ;
-
-                    x = lens.pos.x;
-                    y = lens.pos.y - origin.radius;
-                    d = dist( x, y, lens.pos.x + lens.focalDistance, lens.pos.y );
-                    l = (screen.pos.x - x) * d / (lens.pos.x + lens.focalDistance - x);
-                    y += ( screen.pos.y - y ) * l / d;
-
-                    if ( y > (screen.pos.y + screen.height / 2) ){
-                        // elongate the ray if it won't hit the screen
-                        l += 500;
-                    }
-
-                    // Farside focal
-                    Drawer
-                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, origin.pos.y - origin.radius )
-                        .line( lens.pos.x, origin.pos.y - origin.radius, lens.pos.x + lens.focalDistance, lens.pos.y, l )
-                        ;
-
-                    x = origin.pos.x;
-                    y = origin.pos.y - origin.radius;
-                    d = dist( x, y, lens.pos.x - lens.focalDistance, lens.pos.y );
-                    l = (lens.pos.x - x) * d / (lens.pos.x - lens.focalDistance - x);
-                    y += ( lens.pos.y - y ) * l / d;
-
-                    if ( y < (lens.pos.y + lens.height / 2) && y > lens.pos.y ){
-                        // Nearside focal
-                        Drawer
-                            .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x - lens.focalDistance, origin.pos.y, l )
-                            .line( lens.pos.x, y, lens.pos.x + 1000, y )
-                            ;
+                    if ( rays.bottom ){
+                        rayFrom( origin.pos.x, origin.pos.y + origin.radius );
                     }
                 }
             };
