@@ -2,12 +2,14 @@ define(
     [
         'jquery',
         'moddef',
-        'modules/canvas-drawer'
+        'modules/canvas-drawer',
+        'vendor/raf'
     ],
     function(
         $,
         M,
-        Drawer
+        Drawer,
+        _raf
     ) {
 
         'use strict';
@@ -17,6 +19,8 @@ define(
             ,'greyDark': 'rgb(200, 200, 200)'
             ,'deepGrey': 'rgb(67, 67, 67)'
             ,'blue': 'rgb(40, 136, 228)'
+            ,'green': 'rgb(121, 229, 0)'
+            ,'red': 'rgb(233, 63, 51)'
         };
 
         function throttle( fn, delay, scope ){
@@ -55,13 +59,30 @@ define(
                 ,strokeStyle: colors.deepGrey
                 ,shadowBlur: 1
                 ,shadowColor: colors.deepGrey
+                ,lineCap: 'round'
             }
             ,pointStyles = {
                 lineWidth: 1
                 ,strokeStyle: colors.blue
                 ,fillStyle: colors.blue
             }
+            ,screenStyles = {
+                lineWidth: 3
+                ,strokeStyle: colors.deepGrey
+                ,lineCap: 'round'
+            }
+            ,screenHatchStyles = {
+                lineWidth: 2
+                ,strokeStyle: colors.greyDark
+                ,lineCap: 'round'
+            }
             ;
+
+        function dist( x, y, x2, y2 ){
+            x2 -= x;
+            y2 -= y;
+            return Math.sqrt( x2*x2 + y2*y2 );
+        }
 
         function makeLens( x, y, height, f ){
             var lens = {
@@ -100,6 +121,53 @@ define(
             };
 
             return lens;
+        }
+
+        function makeRays( lens, origin, screen ){
+
+            var rays = {
+                draw: function( ctx ){
+
+                    var d
+                        ,l
+                        ,x
+                        ,y
+                        ;
+
+                    x = origin.pos.x;
+                    y = origin.pos.y - origin.radius;
+                    d = dist( x, y, lens.pos.x, lens.pos.y );
+                    l = (screen.pos.x - x) * d / (lens.pos.x - x);
+
+                    // center
+                    Drawer( ctx )
+                        .styles( 'strokeStyle', colors.red )
+                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, lens.pos.y, l )
+                        ;
+
+                    // Farside focal
+                    Drawer
+                        .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, origin.pos.y - origin.radius )
+                        .line( lens.pos.x, origin.pos.y - origin.radius, lens.pos.x + lens.focalDistance, lens.pos.y, 250 )
+                        ;
+
+                    x = origin.pos.x;
+                    y = origin.pos.y - origin.radius;
+                    d = dist( x, y, lens.pos.x - lens.focalDistance, lens.pos.y );
+                    l = (lens.pos.x - x) * d / (lens.pos.x - lens.focalDistance - x);
+                    y += ( lens.pos.y - y ) * l / d;
+
+                    if ( y < (lens.pos.y + lens.height / 2) && y > lens.pos.y ){
+                        // Nearside focal
+                        Drawer
+                            .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x - lens.focalDistance, origin.pos.y, l )
+                            .line( lens.pos.x, y, lens.pos.x + 1000, y )
+                            ;
+                    }
+                }
+            };
+
+            return rays;
         }
 
         var Mediator = M({
@@ -152,9 +220,12 @@ define(
                 canvas.height = height;
 
                 this.ctx = ctx;
+
+                // lens
                 this.lens = makeLens( (width/2)|0, (height/2)|0, 200, 100 );
                 this.draw( this.lens );
 
+                // objective
                 this.origin = {
                     pos: {
                         x: width / 2 - 200
@@ -194,6 +265,51 @@ define(
                 });
 
                 this.draw( this.origin );
+
+                // screen
+                this.screen = {
+                    pos: {
+                        x: width / 2 + 200
+                        ,y: height / 2
+                    }
+                    ,height: 200
+                    ,draw: function( ctx ){
+
+                        var h2 = this.height / 2
+                            ,x = this.pos.x
+                            ,y = this.pos.y
+                            ,s = 10
+                            ,lines = this.lines
+                            ;
+
+                        if ( !lines ){
+                            lines = this.lines = [];
+                            y -= h2;
+                            for ( var i = 0; i * s < this.height; i++ ){
+                                y += s;
+                                lines.push([ x, y, x + 10, y - 10 ]);
+                            }
+                        }
+
+                        y = this.pos.y;
+
+                        Drawer( ctx )
+                            .styles( 'fillStyle', 'white' )
+                            .rect( x, y - h2, x + width, y + h2 )
+                            .fill()
+                            .styles( screenHatchStyles )
+                            .lines( lines )
+                            .styles( screenStyles )
+                            .line( x, y - h2, x, y + h2 )
+                            ;
+                    }
+                };
+
+                // rays
+                this.rays = makeRays( this.lens, this.origin, this.screen );
+                this.draw( this.rays );
+
+                this.draw( this.screen );
 
                 this.draw();
             }
