@@ -134,21 +134,39 @@ define(
                         ,y
                         ;
 
+                    Drawer( ctx ).styles( 'strokeStyle', colors.red );
+
                     x = origin.pos.x;
                     y = origin.pos.y - origin.radius;
                     d = dist( x, y, lens.pos.x, lens.pos.y );
                     l = (screen.pos.x - x) * d / (lens.pos.x - x);
+                    y += ( screen.pos.y - y ) * l / d;
+
+                    if ( y > (screen.pos.y + screen.height / 2) ){
+                        // elongate the ray if it won't hit the screen
+                        l += 500;
+                    }
 
                     // center
-                    Drawer( ctx )
-                        .styles( 'strokeStyle', colors.red )
+                    Drawer
                         .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, lens.pos.y, l )
                         ;
+
+                    x = lens.pos.x;
+                    y = lens.pos.y - origin.radius;
+                    d = dist( x, y, lens.pos.x + lens.focalDistance, lens.pos.y );
+                    l = (screen.pos.x - x) * d / (lens.pos.x + lens.focalDistance - x);
+                    y += ( screen.pos.y - y ) * l / d;
+
+                    if ( y > (screen.pos.y + screen.height / 2) ){
+                        // elongate the ray if it won't hit the screen
+                        l += 500;
+                    }
 
                     // Farside focal
                     Drawer
                         .line( origin.pos.x, origin.pos.y - origin.radius, lens.pos.x, origin.pos.y - origin.radius )
-                        .line( lens.pos.x, origin.pos.y - origin.radius, lens.pos.x + lens.focalDistance, lens.pos.y, 250 )
+                        .line( lens.pos.x, origin.pos.y - origin.radius, lens.pos.x + lens.focalDistance, lens.pos.y, l )
                         ;
 
                     x = origin.pos.x;
@@ -204,6 +222,10 @@ define(
                         self.emit('release', { x: e.pageX - offset.left, y: e.pageY - offset.top });
                     }
                 }, '#canvas');
+
+                $(window).on('resize', function(){
+                    self.emit('resize', { width: window.innerWidth, height: window.innerHeight });
+                });
             }
 
             // DomReady Callback
@@ -219,17 +241,23 @@ define(
                 canvas.width = width;
                 canvas.height = height;
 
+                self.on('resize', function( e, dim ){
+                    width = canvas.width = dim.width;
+                    height = canvas.height = dim.height;
+                    self.draw();
+                });
+
                 this.ctx = ctx;
 
                 // lens
-                this.lens = makeLens( (width/2)|0, (height/2)|0, 200, 100 );
+                this.lens = makeLens( 0, 0, 200, 100 );
                 this.draw( this.lens );
 
                 // objective
                 this.origin = {
                     pos: {
-                        x: width / 2 - 200
-                        ,y: height / 2
+                        x: -200
+                        ,y: 0
                     }
                     ,radius: 50
                     ,draw: function( ctx ){
@@ -239,29 +267,12 @@ define(
                               .fill()
                             ;
                     }
-                    ,isInside: function( x, y ){
-                        x -= this.pos.x;
-                        y -= this.pos.y;
-                        return Math.sqrt( x*x + y*y ) <= this.radius;
-                    }
                 };
 
-                self.on('grab', function( e, pos ){
-
-                    if ( !self.origin.isInside( pos.x, pos.y ) ){
-                        return;
-                    }
-
-                    var move = function( e, pos ){
-                        self.origin.pos.x = pos.x;
-                        self.draw();
-                    };
-
-                    self.on('move', move);
-                    self.on('release', function( e ){
-                        self.off('move', move);
-                        self.off(e.topic, e.handler);
-                    });
+                this.makeMovable( this.origin, function( x, y, item ){
+                    x -= item.pos.x;
+                    y -= item.pos.y;
+                    return Math.sqrt( x*x + y*y ) <= item.radius;
                 });
 
                 this.draw( this.origin );
@@ -269,8 +280,8 @@ define(
                 // screen
                 this.screen = {
                     pos: {
-                        x: width / 2 + 200
-                        ,y: height / 2
+                        x: 200
+                        ,y: 0
                     }
                     ,height: 200
                     ,draw: function( ctx ){
@@ -279,16 +290,13 @@ define(
                             ,x = this.pos.x
                             ,y = this.pos.y
                             ,s = 10
-                            ,lines = this.lines
+                            ,lines = []
                             ;
 
-                        if ( !lines ){
-                            lines = this.lines = [];
-                            y -= h2;
-                            for ( var i = 0; i * s < this.height; i++ ){
-                                y += s;
-                                lines.push([ x, y, x + 10, y - 10 ]);
-                            }
+                        y -= h2;
+                        for ( var i = 0; i * s < this.height; i++ ){
+                            y += s;
+                            lines.push([ x, y, x + 10, y - 10 ]);
                         }
 
                         y = this.pos.y;
@@ -305,6 +313,17 @@ define(
                     }
                 };
 
+                this.makeMovable( this.screen, function( x, y, item ){
+
+                    var h2 = item.height/2;
+                    x -= item.pos.x;
+                    y -= item.pos.y;
+                    return x < 15 &&
+                        x > -15 &&
+                        y < h2 &&
+                        y > (-h2);
+                });
+
                 // rays
                 this.rays = makeRays( this.lens, this.origin, this.screen );
                 this.draw( this.rays );
@@ -312,6 +331,51 @@ define(
                 this.draw( this.screen );
 
                 this.draw();
+            }
+
+            ,makeMovable: function( item, isInside ){
+
+                var self = this;
+                var canvas = self.ctx.canvas;
+
+                self.on('move', function( e, pos ){
+                    var width = self.ctx.canvas.width
+                        ,height = self.ctx.canvas.height
+                        ;
+
+                    if ( e.stop ){
+                        return;
+                    }
+
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ){
+                        e.stop = true;
+                        canvas.style.cursor = 'move';
+                    } else {
+                        canvas.style.cursor = '';
+                    }
+                });
+
+                self.on('grab', function( e, pos ){
+
+                    var width = self.ctx.canvas.width
+                        ,height = self.ctx.canvas.height
+                        ;
+
+                    if ( !isInside( pos.x - width/2, pos.y - height/2, item ) ){
+                        return;
+                    }
+
+                    var move = function( e, pos ){
+                        item.pos.x = pos.x - width/2;
+                        self.draw();
+                    };
+
+                    self.on('move', move);
+                    self.on('release', function( e ){
+                        self.off('move', move);
+                        self.off(e.topic, e.handler);
+                    });
+                });
             }
 
             ,draw: function( thing ){
@@ -326,7 +390,10 @@ define(
 
             ,_trueDraw: function(){
 
-                Drawer( this.ctx ).clear();
+                Drawer( this.ctx )
+                    .offset( this.ctx.canvas.width/2, this.ctx.canvas.height/2 )
+                    .clear()
+                    ;
 
                 for ( var i = 0, l = this.canvasElements.length; i < l; i++ ){
                     this.canvasElements[ i ].draw( this.ctx );

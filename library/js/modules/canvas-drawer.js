@@ -44,6 +44,12 @@ define(function(){
         };
     };
 
+    Drawer.offset = function( x, y ){
+        Drawer.offset.x = x;
+        Drawer.offset.y = y;
+        return Drawer;
+    };
+
     Drawer.styles = function( styles, val, ctx ){
 
         var defs = Drawer.defaultStyles
@@ -75,9 +81,15 @@ define(function(){
 
         var len = typeof length === 'number'
             ,n
+            ,ox = Drawer.offset.x
+            ,oy = Drawer.offset.y
             ;
 
         ctx = (len ? ctx : length) || Drawer.ctx;
+        x += ox;
+        y += oy;
+        x2 += ox;
+        y2 += oy;
 
         ctx.beginPath();
         ctx.moveTo(x, y);
@@ -101,13 +113,19 @@ define(function(){
     Drawer.lines = function( points, ctx ){
         ctx = ctx || Drawer.ctx;
 
-        var i, p, l = points.length;
+        var i
+            ,p
+            ,l = points.length
+            ,ox = Drawer.offset.x
+            ,oy = Drawer.offset.y
+            ;
+
         ctx.beginPath();
 
         for ( i = 0; i < l; i++ ){
             p = points[ i ];
-            ctx.moveTo( p[0], p[1] );
-            ctx.lineTo( p[2], p[3] );
+            ctx.moveTo( p[0] + ox, p[1] + oy );
+            ctx.lineTo( p[2] + ox, p[3] + oy );
         }
 
         ctx.stroke();
@@ -116,7 +134,15 @@ define(function(){
     };
 
     Drawer.circle = function( x, y, r, ctx ){
+
+        var ox = Drawer.offset.x
+            ,oy = Drawer.offset.y
+            ;
+
         ctx = ctx || Drawer.ctx;
+
+        x += ox;
+        y += oy;
 
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Pi2, false);
@@ -126,17 +152,32 @@ define(function(){
     };
 
     Drawer.rect = function( x, y, x2, y2, ctx ){
+
+        var ox = Drawer.offset.x
+            ,oy = Drawer.offset.y
+            ;
+
         ctx = ctx || Drawer.ctx;
 
-        ctx.fillRect( x, y, x2-x, y2-y );
+        ctx.fillRect( x + ox, y + oy, x2-x, y2-y );
 
         return Drawer;
     };
 
     Drawer.quadratic = function( x1, y1, x2, y2, cx, cy, ctx ){
+
+        var ox = Drawer.offset.x
+            ,oy = Drawer.offset.y
+            ;
+
         ctx = ctx || Drawer.ctx;
-        cx = cx === undefined ? (x1+x2) * 0.5 : cx;
-        cy = cy === undefined ? (y1+y2) * 0.5 : cy;
+        cx = cx === undefined ? (x1+x2) * 0.5 + ox : cx + ox;
+        cy = cy === undefined ? (y1+y2) * 0.5 + oy : cy + oy;
+
+        x1 += ox;
+        y1 += oy;
+        x2 += ox;
+        y2 += oy;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -168,5 +209,5 @@ define(function(){
         return Drawer;
     };
 
-    return Drawer;
+    return Drawer.offset( 0, 0 );
 });

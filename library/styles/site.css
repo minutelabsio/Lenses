@@ -2,3 +2,13 @@
 html, body, #wrap-outer {
   height: 100%;
 }
+
+/* line 9, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
