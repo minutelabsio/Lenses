@@ -25,11 +25,15 @@ html, body, #wrap-outer {
 
     .btn-group {
         width: 14em;
+
+        &:first-child {
+            margin-top: 0;
+        }
     }
 
     #screen {
         position: absolute;
-        top: 0;
+        top: 2em;
         right: 30px;
         border: 2px solid $grey-dark;
         @include border-radius( 3px );
