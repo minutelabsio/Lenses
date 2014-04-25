@@ -22,18 +22,28 @@ define(
 
         var colors = {
             'grey': 'rgb(220, 220, 220)'
+            ,'greyLight': 'rgb(237, 237, 237)'
             ,'greyDark': 'rgb(200, 200, 200)'
+
             ,'deepGrey': 'rgb(67, 67, 67)'
+
             ,'blue': 'rgb(40, 136, 228)'
             ,'blueLight': 'rgb(91, 191, 243)'
             ,'blueDark': 'rgb(18, 84, 151)'
+
             ,'blueGlass': 'rgb(221, 249, 255)'
+
             ,'green': 'rgb(121, 229, 0)'
             ,'greenLight': 'rgb(125, 242, 129)'
             ,'greenDark': 'rgb(64, 128, 0)'
+
             ,'red': 'rgb(233, 63, 51)'
             ,'redLight': 'rgb(244, 183, 168)'
             ,'redDark': 'rgb(167, 42, 34)'
+
+            ,'orange': 'rgb(239, 132, 51)'
+            ,'orangeLight': 'rgb(247, 195, 138)'
+            ,'orangeDark': 'rgb(159, 80, 31)'
         };
 
         function throttle( fn, delay, scope ){
@@ -196,6 +206,10 @@ define(
                     .line( lens.pos.x, oy, lens.pos.x + lens.focalDistance, lens.pos.y, l )
                     ;
 
+                if ( ox > (lens.pos.x - lens.focalDistance) ){
+                    return;
+                }
+
                 // Nearside focal
                 x = ox;
                 y = oy;
@@ -216,6 +230,7 @@ define(
 
             var rays = {
                 top: true
+                ,mid: false
                 ,bottom: false
                 ,draw: function( ctx ){
 
@@ -227,6 +242,10 @@ define(
 
                     if ( rays.bottom ){
                         rayFrom( origin.pos.x, origin.pos.y + origin.radius, 'green' );
+                    }
+
+                    if ( rays.mid ){
+                        rayFrom( origin.pos.x, origin.pos.y - origin.radius * 0.3, 'orange' );
                     }
                 }
             };
@@ -300,6 +319,15 @@ define(
                     self.emit('settings:top-rays', active);
                 });
 
+                $(document).on( clickEvent, '#ctrl-mid-rays', function(){
+                    var $this = $(this)
+                        ,active = !$this.is('.on')
+                        ;
+
+                    $this.toggleClass( 'on', active );
+                    self.emit('settings:mid-rays', active);
+                });
+
                 $(document).on( clickEvent, '#ctrl-bottom-rays', function(){
                     var $this = $(this)
                         ,active = !$this.is('.on')
@@ -365,7 +393,7 @@ define(
                     x -= item.pos.x;
                     y -= item.pos.y;
                     return Math.sqrt( x*x + y*y ) <= item.radius;
-                });
+                }, [-width/2+50, -80]);
 
                 this.draw( this.origin );
 
@@ -414,7 +442,7 @@ define(
                         x > -15 &&
                         y < h2 &&
                         y > (-h2);
-                });
+                }, [ 50, width/2 - 50 ]);
 
                 // rays
                 this.rays = makeRays( this.lens, this.origin, this.screen );
@@ -422,6 +450,9 @@ define(
 
                 self.on('settings:top-rays', function( e, on ){
                     self.rays.top = on;
+                    self.draw();
+                }).on('settings:mid-rays', function( e, on ){
+                    self.rays.mid = on;
                     self.draw();
                 }).on('settings:bottom-rays', function( e, on ){
                     self.rays.bottom = on;
@@ -441,17 +472,22 @@ define(
                             ,ox = self.lens.pos.x - self.origin.pos.x
                             // focal origin of screen
                             ,sx = (self.screen.pos.x * f)/(self.screen.pos.x - f)
-                            // confusion circle
-                            ,c = self.lens.height * Math.abs(sx - ox) * f / (sx * (ox - f))
+                            // confusion circle (times 0.5 fudge for UX reasons)
+                            ,c = self.lens.height * Math.abs(sx - ox) * f / (sx * (ox - f)) * 0.5
                             // image dist
                             ,factor = (ox * f)/(ox - f)
                             ,oh = self.origin.radius
-                            // height of the image = ratio of object/image distances plus confusion circle
-                            // multiply by two because we're using the radius (half height)
-                            ,h = 2 * (factor * oh / ox + c/2)
+                            ,h
                             ,data
                             ,canvas = this.ctx.canvas
                             ;
+
+                        if ( c < 0 || isNaN(c) ){
+                            c = 200;
+                        }
+                        // height of the image = ratio of object/image distances plus confusion circle
+                        // multiply by two because we're using the radius (half height)
+                        h = 2 * (factor * oh / ox + c/2);
 
                         Draw( this.ctx )
                             .clear()
@@ -460,6 +496,10 @@ define(
                             .rect( 0, 0, canvas.width, canvas.height )
                             ;
 
+                        if ( c >= 200 ){
+                            return;
+                        }
+                        
                         this.ctx.save();
                         this.ctx.scale(-1, -1);
 
@@ -486,7 +526,7 @@ define(
                 });
             }
 
-            ,makeMovable: function( item, isInside ){
+            ,makeMovable: function( item, isInside, bounds ){
 
                 var self = this;
                 var canvas = self.ctx.canvas;
@@ -513,6 +553,8 @@ define(
                             ;
                     }
                 };
+
+                bounds = bounds || [-Infinity, Infinity];
 
                 self.draw( handle );
 
@@ -545,7 +587,7 @@ define(
                         dist( pos.x - width/2, pos.y - height/2, handle.pos.x, handle.pos.y ) <= handle.radius
                     ){
                         var move = function( e, pos ){
-                            item.pos.x = pos.x - width/2;
+                            item.pos.x = Math.max(Math.min(pos.x - width/2, bounds[1]), bounds[0]);
                             self.draw();
                         };
 
