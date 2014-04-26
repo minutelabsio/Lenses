@@ -5,7 +5,8 @@ define(
         'moddef',
         'modules/canvas-drawer',
         'vendor/raf',
-        'vendor/blur-filter'
+        'vendor/blur-filter',
+        'vendor/tween'
     ],
     function(
         require,
@@ -13,11 +14,13 @@ define(
         M,
         Draw,
         _raf,
-        Blur
+        Blur,
+        _tweenjs
     ) {
 
         'use strict';
 
+        var TWEEN = window.TWEEN;
         var blur = new Blur();
 
         var colors = {
@@ -236,7 +239,7 @@ define(
             }
 
             var rays = {
-                top: true
+                top: false
                 ,mid: false
                 ,bottom: false
                 ,draw: function( ctx ){
@@ -365,7 +368,7 @@ define(
 
                 var self = this
                     ,width = window.innerWidth
-                    ,height = 500
+                    ,height = 460
                     ,canvas = $('#canvas')[0]
                     ,ctx = canvas.getContext('2d')
                     ;
@@ -388,9 +391,10 @@ define(
                 // objective
                 this.origin = {
                     pos: {
-                        x: -200
+                        x: -width/2-50
                         ,y: 0
                     }
+                    ,helptext: true
                     ,src: require.toUrl('../../images/Gangnam-style-2.png')
                     ,radius: 80
                     ,draw: function( ctx ){
@@ -409,6 +413,18 @@ define(
                             .text( 'Psy', x - 40, y + 2 )
                             ;
 
+                        if ( this.helptext ){
+                            x = this.pos.x - 140;
+                            y = this.pos.y + 120;
+
+                            Draw( ctx )
+                                .styles( psyArrowStyles )
+                                .text('Move me!', x, y)
+                                .quadratic( x + 40, y - 20, x + 70, y - 50, x + 40, y - 50 )
+                                .arrowHead( 'right', x + 70, y - 50, 5 )
+                                    .fill()
+                                ;
+                        }
                     }
                 };
 
@@ -423,9 +439,10 @@ define(
                 // screen
                 this.screen = {
                     pos: {
-                        x: 200
+                        x: width/2 + 50
                         ,y: 0
                     }
+                    ,helptext: true
                     ,height: 300
                     ,draw: function( ctx ){
 
@@ -453,8 +470,27 @@ define(
                             .styles( screenStyles )
                             .line( x, y - h2, x, y + h2 )
                             ;
+
+                        if ( this.helptext ){
+                            x = this.pos.x + 60;
+                            y = this.pos.y + 60;
+
+                            Draw( ctx )
+                                .styles( psyArrowStyles )
+                                .text('Move me!', x, y)
+                                .quadratic( x + 40, y - 20, x - 10, y - 50, x + 40, y - 50 )
+                                .arrowHead( 'left', x - 10, y - 50, 5 )
+                                    .fill()
+                                ;
+                        }
                     }
                 };
+
+                self.on('drag', function(e){
+                    self.origin.helptext = false;
+                    self.screen.helptext = false;
+                    self.off(e.topic, e.handler);
+                });
 
                 this.makeMovable( this.screen, function( x, y, item ){
 
@@ -540,12 +576,31 @@ define(
 
                 Draw.preload( this.origin.src, function(){
                     self.draw();
+                    self.emit('settings:reset', 1000);
+                    setTimeout(function(){
+                        self.rays.top = true;
+                        self.draw();
+                    }, 1000)
                 });
 
-                self.on('settings:reset', function(){
-                    self.origin.pos.x = -200;
-                    self.screen.pos.x = 200;
-                    self.draw();
+                self.on('settings:reset', function( e, dur ){
+                    var tween = new TWEEN.Tween({
+                            ox: self.origin.pos.x
+                            ,sx: self.screen.pos.x
+                        })
+                        .to({
+                            ox: -200
+                            ,sx: 200
+                        }, dur || 500 )
+                        .easing( TWEEN.Easing.Elastic.Out )
+                        .onUpdate( function () {
+
+                            self.origin.pos.x = this.ox;
+                            self.screen.pos.x = this.sx;
+                        })
+                        ;
+
+                    self.animate( tween );
                 });
             }
 
@@ -553,33 +608,9 @@ define(
 
                 var self = this;
                 var canvas = self.ctx.canvas;
-                var handle = {
-                    radius: 20
-                    ,pos: {
-                        get x(){
-                            return item.pos.x;
-                        }
-                        ,y: 200
-                    }
-                    ,draw: function( ctx ){
 
-                        Draw( ctx )
-                            .styles( 'strokeStyle', '#444' )
-                            .line( item.pos.x, item.pos.y, item.pos.x, this.pos.y )
-                            .styles( arrowStyles )
-                            .rect( item.pos.x - 10, this.pos.y - 2, item.pos.x + 10, this.pos.y + 2 )
-                                .fill()
-                            .arrowHead( 'left', item.pos.x - 15, this.pos.y, 10 )
-                                .fill()
-                            .arrowHead( 'right', item.pos.x + 15, this.pos.y, 10 )
-                                .fill()
-                            ;
-                    }
-                };
 
                 bounds = bounds || [-Infinity, Infinity];
-
-                self.draw( handle );
 
                 self.on('move', function( e, pos ){
                     var width = self.ctx.canvas.width
@@ -590,9 +621,7 @@ define(
                         return;
                     }
 
-                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ||
-                        dist( pos.x - width/2, pos.y - height/2, handle.pos.x, handle.pos.y ) <= handle.radius
-                    ){
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ){
                         e.stop = true;
                         canvas.style.cursor = 'move';
                     } else {
@@ -606,12 +635,11 @@ define(
                         ,height = self.ctx.canvas.height
                         ;
 
-                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ||
-                        dist( pos.x - width/2, pos.y - height/2, handle.pos.x, handle.pos.y ) <= handle.radius
-                    ){
+                    if ( isInside( pos.x - width/2, pos.y - height/2, item ) ){
                         var move = function( e, pos ){
                             item.pos.x = Math.max(Math.min(pos.x - width/2, bounds[1]), bounds[0]);
                             self.draw();
+                            self.emit('drag', pos);
                         };
 
                         self.on('move', move);
@@ -643,6 +671,39 @@ define(
                 for ( var i = 0, l = this.canvasElements.length; i < l; i++ ){
                     this.canvasElements[ i ].draw( this.ctx );
                 }
+
+                this.emit('draw');
+            }
+
+            ,animate: function( tween ){
+
+                var self = this
+                    ,done = false
+                    ;
+
+                tween.onComplete(function(){
+                    done = true;
+                }).start();
+
+                function draw(){
+                    if ( done ){
+                        return;
+                    }
+
+                    window.requestAnimationFrame( draw );
+                    TWEEN.update();
+
+                    Draw( self.ctx )
+                        .offset( self.ctx.canvas.width/2, self.ctx.canvas.height/2 )
+                        .clear()
+                        ;
+
+                    for ( var i = 0, l = self.canvasElements.length; i < l; i++ ){
+                        self.canvasElements[ i ].draw( self.ctx );
+                    }
+                }
+
+                draw();
             }
 
         }, ['events']);
