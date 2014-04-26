@@ -113,7 +113,7 @@ define(
                 lineWidth: 2
                 ,strokeStyle: colors.deepGreyLight
                 ,fillStyle: colors.deepGreyLight
-                ,font: '20px "latin-modern-mono-light", Courier, monospace'
+                ,font: '20px "sf_cartoonist_hand", Helvetica, Arial, sans-serif'
             }
             ;
 
@@ -410,7 +410,7 @@ define(
                             .quadratic( x, y, x + 30, y + 30, x + 26, y + 2 )
                             .arrowHead( 'down', x + 29, y + 30, 5 )
                                 .fill()
-                            .text( 'Psy', x - 40, y + 2 )
+                            .text( 'Psy', x - 30, y + 2 )
                             ;
 
                         if ( this.helptext ){
@@ -419,7 +419,7 @@ define(
 
                             Draw( ctx )
                                 .styles( psyArrowStyles )
-                                .text('Move me!', x, y)
+                                .text('Move me!', x+10, y)
                                 .quadratic( x + 40, y - 20, x + 70, y - 50, x + 40, y - 50 )
                                 .arrowHead( 'right', x + 70, y - 50, 5 )
                                     .fill()
@@ -477,7 +477,7 @@ define(
 
                             Draw( ctx )
                                 .styles( psyArrowStyles )
-                                .text('Move me!', x, y)
+                                .text('Move me!', x + 10, y)
                                 .quadratic( x + 40, y - 20, x - 10, y - 50, x + 40, y - 50 )
                                 .arrowHead( 'left', x - 10, y - 50, 5 )
                                     .fill()
