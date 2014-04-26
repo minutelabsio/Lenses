@@ -211,6 +211,7 @@ define(function(){
         x2 += ox;
         y2 += oy;
 
+        ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.quadraticCurveTo(cx, cy, x2, y2);
         ctx.stroke();

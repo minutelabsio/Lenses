@@ -2,9 +2,9 @@ permalink: /:year-:month-:day/:title
 markdown: rdiscount
 exclude: ["README.md", "CNAME", "LICENSE", "build", "config.rb", "Gruntfile.js", "package.json", "jshint.json"]
 
-title : "Lenses" # changeme
+title : "Convex Lenses" # changeme
 id : "" # changeme
-description : "Short description" # changeme
+description : "A quick demonstration of convex lenses" # changeme
 thumb: "http://minutelabs.io/assets/THUMB_IMAGE" # changem
 version: "0.0.1"
 

@@ -102,7 +102,7 @@ define(
                 ,lineCap: 'round'
             }
             ,arrowStyles = {
-                lineWidth: 2
+                lineWidth: 1
                 ,strokeStyle: colors.greenDark
                 ,fillStyle: colors.green
             }
@@ -285,16 +285,19 @@ define(
                 if ( window.Modernizr.touch ){
                     $(document).on({
                         'touchstart': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             e = e.originalEvent.targetTouches[0];
                             self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
                         }
                         ,'touchmove': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             e = e.originalEvent.targetTouches[0];
                             self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
                         }
                         ,'touchend': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             self.emit('release');
                         }
@@ -303,14 +306,17 @@ define(
 
                     $(document).on({
                         'mousedown': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             self.emit('grab', { x: e.pageX - offset.left, y: e.pageY - offset.top });
                         }
                         ,'mousemove': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             self.emit('move', { x: e.pageX - offset.left, y: e.pageY - offset.top });
                         }
                         ,'mouseup': function( e ){
+                            e.preventDefault();
                             var offset = $(this).offset();
                             self.emit('release');
                         }
