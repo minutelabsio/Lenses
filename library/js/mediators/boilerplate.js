@@ -78,7 +78,7 @@ define(
         }
 
         function logerr(){
-            console.log(arguments);
+            window.console.log(arguments);
         }
 
         var lensStyles = {
@@ -580,7 +580,7 @@ define(
                     setTimeout(function(){
                         self.rays.top = true;
                         self.draw();
-                    }, 1000)
+                    }, 1000);
                 });
 
                 self.on('settings:reset', function( e, dur ){
