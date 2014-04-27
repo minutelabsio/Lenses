@@ -1,0 +1,49 @@
+// site styles
+@import 'compass/css3';
+@import '_vars';
+
+html, body, #wrap-outer {
+    height: 100%;
+}
+
+#viewport {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+
+#controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 800px;
+    padding: 2em 13em 45px 2em;
+    margin: auto;
+    @include box-sizing( border-box );
+
+    .btn-group {
+        width: 14em;
+        margin-right: 2.75em;
+        margin-top: 0;
+        float: left;
+    }
+
+    .btn-group:first-child {
+        button {
+            @include border-radius( 3px );
+        }
+    }
+
+    #screen {
+        position: absolute;
+        bottom: 1em;
+        right: 30px;
+        border: 2px solid $grey-dark;
+        @include border-radius( 3px );
+    }
+}
