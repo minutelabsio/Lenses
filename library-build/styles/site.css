@@ -1,9 +1,45 @@
-/* line 5, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 1, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/_slider.scss */
+.slider {
+  margin: 10px 16px;
+  border: 1px solid #c8c8c8;
+  height: 12px;
+  background: #fff;
+  z-index: 1;
+  cursor: pointer;
+}
+/* line 9, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/_slider.scss */
+.slider .handle {
+  background: gainsboro;
+  border: 1px solid #626262;
+  width: 32px;
+  height: 32px;
+  z-index: 2;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  -webkit-border-radius: 50%;
+  -moz-border-radius: 50%;
+  -ms-border-radius: 50%;
+  -o-border-radius: 50%;
+  border-radius: 50%;
+}
+/* line 18, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/_slider.scss */
+.slider .handle:hover {
+  background: #fff;
+}
+/* line 23, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/_slider.scss */
+.slider .meter {
+  z-index: 1;
+  background: #2888e4;
+  border: 1px solid #2888e4;
+}
+
+/* line 6, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 html, body, #wrap-outer {
   height: 100%;
 }
 
-/* line 9, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 10, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #viewport {
   position: absolute;
   top: 0;
@@ -13,7 +49,7 @@ html, body, #wrap-outer {
   overflow: hidden;
 }
 
-/* line 18, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 19, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #controls {
   position: absolute;
   left: 0;
@@ -27,14 +63,14 @@ html, body, #wrap-outer {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
 }
-/* line 29, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 30, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #controls .btn-group {
   width: 14em;
   margin-right: 2.75em;
   margin-top: 0;
   float: left;
 }
-/* line 37, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 38, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #controls .btn-group:first-child button {
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
@@ -42,7 +78,7 @@ html, body, #wrap-outer {
   -o-border-radius: 3px;
   border-radius: 3px;
 }
-/* line 42, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+/* line 43, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
 #controls #screen {
   position: absolute;
   bottom: 1em;
@@ -53,4 +89,11 @@ html, body, #wrap-outer {
   -ms-border-radius: 3px;
   -o-border-radius: 3px;
   border-radius: 3px;
+}
+/* line 51, /Users/wellcaffeinated/Documents/github/minutelabs/Lenses/library/styles/site.scss */
+#controls .slider-label {
+  display: block;
+  text-align: center;
+  margin: 2em 0 0.5em;
+  font-size: 18px;
 }
