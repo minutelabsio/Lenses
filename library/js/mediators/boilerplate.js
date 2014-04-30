@@ -20,6 +20,92 @@ define(
 
         'use strict';
 
+        $.fn.slider = function( opts ){
+            var startevent = window.Modernizr.touch ? 'touchstart' : 'mousedown';
+            var moveevent = window.Modernizr.touch ? 'touchmove' : 'mousemove';
+            var endevent = window.Modernizr.touch ? 'touchend' : 'mouseup';
+            var options = $.extend({
+                min: 0
+                ,max: 1
+                ,value: 0.5
+            }, opts);
+
+            return $(this).each(function(){
+                var $this = $(this).addClass('slider')
+                    ,factor = options.max - options.min
+                    ,val = (options.value - options.min) / factor
+                    ,$handle = $('<div>').appendTo($this).addClass('handle')
+                    ,$meter = $('<div>').appendTo($this).addClass('meter')
+                    ;
+
+                function set( x ){
+                    var width = $this.width();
+                    x = Math.max(0, Math.min(width, x));
+                    val = x / width;
+
+                    $handle.css('left', x);
+                    $meter.css('width', (val * 100) + '%');
+
+                    $this.trigger('change', val * factor + options.min);
+                }
+
+                $this.css({
+                    position: this.style.position || 'relative'
+                });
+
+                $meter.css({
+                    display: 'block'
+                    ,position: 'absolute'
+                    ,top: '0'
+                    ,left: '0'
+                    ,bottom: '0'
+                });
+
+                $handle.css({
+                    position: 'absolute'
+                    ,top: '50%'
+                    ,marginLeft: -$handle.outerWidth() * 0.5
+                    ,marginTop: -$handle.outerHeight() * 0.5
+                });
+
+                var dragging = false;
+                var drag = throttle(function( e ){
+
+                    if ( dragging ){
+
+                        e.preventDefault();
+
+                        if ( e.originalEvent.targetTouches ){
+                            e = e.originalEvent.targetTouches[0];
+                        }
+
+                        var offset = $this.offset()
+                            ,x = e.pageX - offset.left
+                            ,y = e.pageY - offset.top
+                            ;
+
+                        set( x );
+                    }
+
+                }, 20);
+
+                $this.on(startevent, function( e ){
+                    dragging = true;
+                    drag( e );
+                });
+                $this.on(moveevent, drag);
+                $this.on(endevent, function(){
+                    dragging = false;
+                });
+
+                $this.on('mousedown', function(){
+                    return false;
+                });
+
+                set( val * $this.width() );
+            });
+        };
+
         var TWEEN = window.TWEEN;
         var blur = new Blur();
 
@@ -140,15 +226,16 @@ define(
                         ,x = pos.x
                         ,y = pos.y
                         ,f = this.focalDistance
+                        ,r = 1 + 5000/f
                         ;
 
                     Draw( ctx )
                         .styles( lensStyles )
                         // left side
-                        .quadratic( x, y - h2, x, y + h2, x - f * 0.4, y )
+                        .quadratic( x, y - h2, x, y + h2, x - r, y )
                             .fill()
                         // right side
-                        .quadratic( x+2, y - h2, x+2, y + h2, x + f * 0.4, y )
+                        .quadratic( x, y - h2, x, y + h2, x + r, y )
                             .fill()
                         .styles( pointStyles )
                         // left focal pt
@@ -358,6 +445,11 @@ define(
                     self.emit('settings:reset');
                 });
 
+                $(document).on('change', '#ctrl-focal-length', function( e, val ){
+
+                    self.emit('settings:focus', val);
+                });
+
                 $(window).on('resize', function(){
                     self.emit('resize', { width: window.innerWidth, height: window.innerHeight });
                 });
@@ -371,6 +463,7 @@ define(
                     ,height = 460
                     ,canvas = $('#canvas')[0]
                     ,ctx = canvas.getContext('2d')
+                    ,$ctrlFocalLength = $('#ctrl-focal-length').slider({ min: 1/300, max: 1/100, value: 1/100 })
                     ;
 
                 canvas.width = width;
@@ -386,7 +479,11 @@ define(
 
                 // lens
                 this.lens = makeLens( 0, 0, 300, 100 );
-                this.draw( this.lens );
+
+                self.on('settings:focus', function( e, val ){
+                    self.lens.focalDistance = 1/val;
+                    self.draw();
+                });
 
                 // objective
                 this.origin = {
@@ -506,6 +603,7 @@ define(
                 // rays
                 this.rays = makeRays( this.lens, this.origin, this.screen );
                 this.draw( this.rays );
+                this.draw( this.lens );
 
                 self.on('settings:top-rays', function( e, on ){
                     self.rays.top = on;
@@ -587,16 +685,19 @@ define(
                     var tween = new TWEEN.Tween({
                             ox: self.origin.pos.x
                             ,sx: self.screen.pos.x
+                            ,f: self.lens.focalDistance
                         })
                         .to({
                             ox: -200
                             ,sx: 200
+                            ,f: 100
                         }, dur || 500 )
                         .easing( TWEEN.Easing.Elastic.Out )
                         .onUpdate( function () {
 
                             self.origin.pos.x = this.ox;
                             self.screen.pos.x = this.sx;
+                            self.lens.focalDistance = this.f;
                         })
                         ;
 

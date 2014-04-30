@@ -1,6 +1,7 @@
 // site styles
 @import 'compass/css3';
 @import '_vars';
+@import '_slider';
 
 html, body, #wrap-outer {
     height: 100%;
@@ -45,5 +46,12 @@ html, body, #wrap-outer {
         right: 30px;
         border: 2px solid $grey-dark;
         @include border-radius( 3px );
+    }
+
+    .slider-label {
+        display: block;
+        text-align: center;
+        margin: 2em 0 0.5em;
+        font-size: 18px;
     }
 }
