@@ -3,7 +3,7 @@ markdown: rdiscount
 exclude: ["README.md", "CNAME", "LICENSE", "build", "config.rb", "Gruntfile.js", "package.json", "jshint.json"]
 
 title : "Convex Lenses"
-id : "" # changeme
+id : "84028387907"
 description : "A quick demonstration of convex lenses"
 thumb: "thumb.gif"
 version: "0.0.2"
